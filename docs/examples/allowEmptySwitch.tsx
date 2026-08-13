@@ -14,7 +14,9 @@ export default () => {
 
   return (
     <div>
-      <h3>allowEmpty={[false, true]}</h3>
+      <h3>
+        <code>{'allowEmpty={[false, true]}'}</code>
+      </h3>
       <p>
         Click start, then end — focus should switch. <code>allowEmpty</code> only gates submit, not
         focus.
