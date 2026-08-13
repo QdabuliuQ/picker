@@ -97,10 +97,12 @@ interface TriggeredField {
  *   没有当前 field 时，`popupClose` 解析为 `resetAll`；其余非撤销事件从
  *   对应 field 开始新一轮交互。
  * - `field-switch` advances exactly one field in circular order. `needConfirm`
- *   locks an unconfirmed non-empty field unless it allows empty; an allow-empty
- *   field is reset before advancing.
+ *   locks an unconfirmed non-empty field unless it allows empty; an empty or
+ *   allow-empty field is reset before advancing. `allowEmpty` does not block
+ *   focusing another field when the current value is empty.
  *   `field-switch` 只允许按循环顺序推进一个 field。`needConfirm` 会锁定未确认
- *   且非空的 field；允许空值时先重置再推进。
+ *   且非空的 field；空值或允许空值时先重置再推进。当前值为空时，`allowEmpty`
+ *   不应阻止聚焦到另一个 field。
  * - Other sources must target the current field. `input` and
  *   `panel-intermediate` modify it; `remove` explicitly submits the removed
  *   value even when the field does not allow empty. `panel-final` advances only
@@ -271,31 +273,34 @@ export default function useRangeValueChange<FieldValue = unknown>(
         return 'abort';
       }
 
-      const nextFieldTriggered = triggeredFieldsRef.current.some(
-        (field) => field.index === nextIndex,
-      );
-
       if (needConfirm) {
         if (confirmedIndexRef.current === currentIndex) {
           return 'switchNext';
         }
 
-        // An allowEmpty field may be left without confirmation. Discard any
-        // unconfirmed CalendarValue before moving to the next field.
-        // allowEmpty field 可以在未确认时离开；切换前需要丢弃未确认的
-        // CalendarValue，再进入下一个 field。
-        return allowEmpty[currentIndex] ? 'resetCurrentAndSwitchNext' : 'abort';
+        // Only lock an unconfirmed non-empty field that does not allow empty.
+        // Empty fields must still allow focus switching; allowEmpty only gates
+        // whether an empty value can be submitted.
+        // 仅锁定未确认且非空、且不允许为空的 field。空值 field 仍可切换焦点；
+        // allowEmpty 只约束空值是否可提交。
+        if (!currentEmpty && !allowEmpty[currentIndex]) {
+          return 'abort';
+        }
+
+        // Discard any unconfirmed / empty CalendarValue before advancing.
+        // 切换前丢弃未确认或空的 CalendarValue。
+        return 'resetCurrentAndSwitchNext';
       }
 
       if (canSwitch) {
         return 'switchNext';
       }
 
-      // Revisiting the next field starts another circular round. Discard the
-      // invalid current field and finish the old round before entering it.
-      // 再次进入已触发的 next field 表示开始新一轮循环。进入前先丢弃当前
-      // 无效 field，并结束旧的一轮。
-      return nextFieldTriggered ? 'resetCurrentAndSwitchNext' : 'resetCurrent';
+      // Empty field that does not allow empty: discard it and still honor the
+      // explicit focus switch. Revisiting the next field also starts a new round.
+      // 不允许为空的空 field：丢弃当前值，但仍响应显式焦点切换；再次进入
+      // next field 时同样开启新一轮。
+      return 'resetCurrentAndSwitchNext';
     }
 
     if (index !== currentIndex) {

@@ -2300,6 +2300,34 @@ describe('Picker.Range', () => {
     expect(container.querySelectorAll('.rc-picker-input')[0]).toHaveClass('rc-picker-input-active');
   });
 
+  it('should allow focusing end when start is empty with allowEmpty={[false, true]}', () => {
+    const { container } = render(<DayRangePicker allowEmpty={[false, true]} />);
+    const [startInput, endInput] = container.querySelectorAll<HTMLInputElement>('input');
+
+    openPicker(container, 0);
+    expect(startInput).toHaveFocus();
+    expect(container.querySelectorAll('.rc-picker-input')[0]).toHaveClass('rc-picker-input-active');
+
+    openPicker(container, 1);
+    expect(endInput).toHaveFocus();
+    expect(startInput).not.toHaveFocus();
+    expect(container.querySelectorAll('.rc-picker-input')[1]).toHaveClass('rc-picker-input-active');
+  });
+
+  it('should allow focusing either field when allowEmpty is unset and both are empty', () => {
+    const { container } = render(<DayRangePicker />);
+    const [startInput, endInput] = container.querySelectorAll<HTMLInputElement>('input');
+
+    openPicker(container, 0);
+    openPicker(container, 1);
+    expect(endInput).toHaveFocus();
+    expect(container.querySelectorAll('.rc-picker-input')[1]).toHaveClass('rc-picker-input-active');
+
+    openPicker(container, 0);
+    expect(startInput).toHaveFocus();
+    expect(container.querySelectorAll('.rc-picker-input')[0]).toHaveClass('rc-picker-input-active');
+  });
+
   // https://github.com/ant-design/ant-design/issues/57728
   it('should not submit unconfirmed allowEmpty value on blur', async () => {
     const onChange = jest.fn();
