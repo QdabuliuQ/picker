@@ -68,6 +68,92 @@ describe('useRangeValueChange', () => {
     expect(flushSubmit).not.toHaveBeenCalled();
     expect(resetValue).not.toHaveBeenCalled();
   });
+
+  it('should reset empty field and switch when allowEmpty is false', () => {
+    const triggerCalendarChange = jest.fn();
+    const flushSubmit = jest.fn();
+    const resetValue = jest.fn();
+    const { result } = renderHook(() =>
+      useRangeValueChange(
+        2,
+        false,
+        [false, true],
+        () => [null, null],
+        triggerCalendarChange,
+        flushSubmit,
+        resetValue,
+      ),
+    );
+
+    act(() => {
+      result.current[4](0, 'field-switch');
+      result.current[4](1, 'field-switch');
+    });
+
+    // Empty + !allowEmpty still switches via resetCurrentAndSwitchNext.
+    // 空值且不允许为空时，仍通过 resetCurrentAndSwitchNext 切换。
+    expect(resetValue).toHaveBeenCalledWith(0);
+    expect(flushSubmit).not.toHaveBeenCalled();
+    expect(triggerCalendarChange).not.toHaveBeenCalled();
+    expect(result.current[0]).toBe(1);
+    expect(result.current[3]).toEqual([0, 1]);
+  });
+
+  it('should reset empty unconfirmed field and switch under needConfirm', () => {
+    const triggerCalendarChange = jest.fn();
+    const flushSubmit = jest.fn();
+    const resetValue = jest.fn();
+    const { result } = renderHook(() =>
+      useRangeValueChange(
+        2,
+        true,
+        [false, true],
+        () => [null, null],
+        triggerCalendarChange,
+        flushSubmit,
+        resetValue,
+      ),
+    );
+
+    act(() => {
+      result.current[4](0, 'field-switch');
+      result.current[4](1, 'field-switch');
+    });
+
+    expect(resetValue).toHaveBeenCalledWith(0);
+    expect(flushSubmit).not.toHaveBeenCalled();
+    expect(result.current[0]).toBe(1);
+    expect(result.current[3]).toEqual([0, 1]);
+  });
+
+  it('should start a new round when switching back to a triggered empty field', () => {
+    const flushSubmit = jest.fn();
+    const resetValue = jest.fn();
+    const { result } = renderHook(() =>
+      useRangeValueChange(
+        2,
+        false,
+        [false, false],
+        () => [null, null],
+        jest.fn(),
+        flushSubmit,
+        resetValue,
+      ),
+    );
+
+    act(() => {
+      result.current[4](0, 'field-switch');
+      result.current[4](1, 'field-switch');
+      result.current[4](0, 'field-switch');
+    });
+
+    // Revisiting start clears the old round, then records the new start field.
+    // 再次进入 start 会清空旧一轮记录，再记录新的 start field。
+    expect(resetValue).toHaveBeenCalledWith(1);
+    expect(flushSubmit).not.toHaveBeenCalled();
+    expect(result.current[0]).toBe(0);
+    expect(result.current[3]).toEqual([0]);
+  });
 });
 
 describe('Picker.Range', () => {

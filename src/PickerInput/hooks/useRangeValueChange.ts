@@ -23,7 +23,6 @@ export type RangeValueChangeAction =
   | 'switchNext'
   | 'finish'
   | 'abort'
-  | 'resetCurrent'
   | 'resetCurrentAndSwitchNext'
   | 'resetAll';
 
@@ -133,8 +132,6 @@ interface TriggeredField {
  *   resetting values. / 结束所有 field 均未修改的交互，不重置任何值。
  * - `abort`: stop without changing any state.
  *   直接短路，不改变任何状态。
- * - `resetCurrent`: discard only the current field.
- *   仅撤销当前 field。
  * - `resetCurrentAndSwitchNext`: discard the current temporary value and
  *   advance without submitting. Revisiting a field starts a new round.
  *   撤销当前临时值并直接推进，不触发提交；再次进入已访问 field 时开启新一轮。
@@ -452,16 +449,6 @@ export default function useRangeValueChange<FieldValue = unknown>(
 
         case 'finish':
           reset();
-          break;
-
-        case 'resetCurrent':
-          resetValue(actionIndex);
-          if (confirmedIndexRef.current === actionIndex) {
-            confirmedIndexRef.current = null;
-          }
-          triggeredFieldsRef.current = triggeredFieldsRef.current.filter(
-            (field) => field.index !== actionIndex,
-          );
           break;
 
         case 'resetCurrentAndSwitchNext': {
